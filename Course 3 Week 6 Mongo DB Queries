@@ -1,0 +1,20 @@
+show dbs
+use sample
+show collections
+db.users.find().count()
+
+1. db.users.find({'user.Location':{$regex:/.*/}}).count() 
+=> 6937
+
+2. db.users.find({$where : "this.user.FollowersCount > this.user.FriendsCount"}).count() 
+=>5809
+
+3. db.users.find({tweet_text : {$regex : "http://"}},{"tweet_text":1}) 
+=> 10 tweets only
+
+4. db.users.createIndex({"tweet_text":"text"})
+   db.users.find({$text : {$search : "England -UEFA"}})
+=> this returns ~20 tweets
+
+5. db.users.find({$and : [{"tweet_text":/UEFA/},{"user.Location:/Ireland/}]}).count()
+=> 11 results
