@@ -1,0 +1,100 @@
+1) //Finding Longest Chat Conversation
+match p=(i)-[:ResponseTo*]->(j) return length(p) as len order by len desc limit 1
+//Answer - 9 (longest path)
+
+match p=(i:ChatItem)-[:ResponseTo*]->(j:ChatItem) 
+where i.id=52694 and j.id=7803 
+with p 
+match (u:User)-[:CreateChat]->(k:ChatItem) 
+where k in nodes(p) 
+return count(distinct u)
+
+//Answer - 5 (unique users)
+
+2) //Top 10 chattiest users and teams
+match (u:User)-[r:CreateChat]-() 
+return u.id,count(r) as chats order by chats desc limit 10
+u.id	chats
+394	115
+2067	111
+1087	109
+209	109
+554	107
+1627	105
+999	105
+516	105
+668	104
+461	104
+
+match (i:ChatItem)-[:PartOf]->(c:TeamChatSession)-[:OwnedBy]->(t:Team) 
+return t.id,count(i) as NumOfChats order by NumOfChats desc limit 10
+
+t.id	NumOfChats
+82	1324
+185	1036
+112	957
+18	844
+194	836
+129	814
+52	788
+136	783
+146	746
+81	736
+
+match (u:User)-[:CreateChat]->(i:ChatItem)-[:PartOf]->(c:TeamChatSession)-[:OwnedBy]->(t:Team) 
+return u.id,t.id,count(i) as NumOfChat order by NumOfChat desc limit 10
+
+u.id	t.id	NumOfChat
+394	63	115
+2067	7	111
+209	7	109
+1087	77	109
+554	181	107
+999	52	105 - 6th Chattiest User in 7th Chattiest Team
+1627	7	105
+516	7	105
+668	89	104
+461	104	104
+
+3)
+a)
+match (u1:User)-[:CreateChat]->(i:ChatItem)-[:Mentioned]->(u2:User) merge (u1)-[:InteractsWith]->(u2)
+match (u1:User)-[:CreateChat]->(i:ChatItem)-[:ResponseTo]->(j:ChatItem)<-[:CreateChat]-(u2:User) 
+merge (u1)-[:InteractsWith]->(u2)
+// merge will ensure uniqueness of InteractsWith edges. no duplicate edges i.e. multigraph.
+
+b) match (u1)-[r:InteractsWith]->(u1) delete r // delete self-loops
+
+d)//get the chattiest nodes list from above.
+UNWIND [394, 2067, 1087, 209, 554, 1627, 999,516,668,461] AS val match (u:User {id:val})-[r:InteractsWith]-(v:User) 
+return val, collect(distinct v.id) as neighbors, count(distinct v.id) as nbrcount
+
+│"val"│"neighbors"                                      │"nbrcount"│
+╞═════╪═════════════════════════════════════════════════╪══════════╡
+│394  │[1012,2011,1997,1782]                            │4         │
+├─────┼─────────────────────────────────────────────────┼──────────┤
+│2067 │[1627,1672,209,1265,516,63,697,2096]             │8         │
+├─────┼─────────────────────────────────────────────────┼──────────┤
+│1087 │[929,426,772,1879,1311,1098]                     │6         │
+├─────┼─────────────────────────────────────────────────┼──────────┤
+│209  │[1672,2067,63,516,1265,1627,2096]                │7         │
+├─────┼─────────────────────────────────────────────────┼──────────┤
+│554  │[1687,610,1959,1010,2018,1096,1412]              │7         │
+├─────┼─────────────────────────────────────────────────┼──────────┤
+│1627 │[2067,63,209,1672,1265,516,2096,697]             │8         │
+├─────┼─────────────────────────────────────────────────┼──────────┤
+│999  │[1398,1506,1606,1554,778,1056,1601,1587,909,1839]│10        │
+├─────┼─────────────────────────────────────────────────┼──────────┤
+│516  │[63,2096,209,1672,1627,2067,1265]                │7         │
+├─────┼─────────────────────────────────────────────────┼──────────┤
+│668  │[698,2034,648,458,1563]                          │5         │
+├─────┼─────────────────────────────────────────────────┼──────────┤
+│461  │[1482,482,1675]                                  │3         │
+
+e)
+UNWIND [394, 2067, 1087, 209, 554, 1627, 999,516,668,461] AS val 
+match (u:User {id:val})-[r:InteractsWith]->(v:User) 
+with val, collect(distinct v.id) as neighbors,count(DISTINCT v.id) as nbrcount 
+match (u1:User),(u2:User) where u1.id in neighbors and u2.id in neighbors 
+with val,toFloat(SUM(CASE when (u1)--(u2) then 1 else 0 end)) as edgecount,nbrcount 
+return val,edgecount,toFloat(edgecount/(nbrcount*(nbrcount-1))) as cc order by cc desc
