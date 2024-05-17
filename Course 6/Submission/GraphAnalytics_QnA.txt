@@ -1,6 +1,6 @@
-1) //Finding Longest Chat Conversation
+1) Finding Longest Chat Conversation//
 match p=(i)-[:ResponseTo*]->(j) return length(p) as len order by len desc limit 1
-//Answer - 9 (longest path)
+=>Answer - 9 (longest path)
 
 match p=(i:ChatItem)-[:ResponseTo*]->(j:ChatItem) 
 where i.id=52694 and j.id=7803 
@@ -9,9 +9,9 @@ match (u:User)-[:CreateChat]->(k:ChatItem)
 where k in nodes(p) 
 return count(distinct u)
 
-//Answer - 5 (unique users)
+=> Answer - 5 (unique users)
 
-2) //Top 10 chattiest users and teams
+2) Top 10 chattiest users and teams//
 match (u:User)-[r:CreateChat]-() 
 return u.id,count(r) as chats order by chats desc limit 10
 u.id	chats
