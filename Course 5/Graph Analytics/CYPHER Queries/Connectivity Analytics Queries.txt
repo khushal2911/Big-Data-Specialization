@@ -1,0 +1,43 @@
+1. Outdegree of nodes in the graph.
+match (n:MyNode)-[r]->()
+return n.Name as Node, count(r) as Outdegree
+order by Outdegree
+union
+match (a:MyNode)-[r]->(leaf)
+where not((leaf)-->())
+return leaf.Name as Node, 0 as Outdegree
+
+2.Indegree of nodes in the graph
+match (n:MyNode)<-[r]-()
+return n.Name as Node, count(r) as Indegree
+order by Indegree
+union
+match (a:MyNode)<-[r]-(root)
+where not((root)<--())
+return root.Name as Node, 0 as Indegree
+
+3.Degree Histogram
+match (n:MyNode)-[r]-()
+with n.Name as Node, count(distinct r) as degree 
+return degree, count(Node) order by degree desc
+
+4. Set degree as node property
+match (n:MyNode)-[r]-() with n,count(DISTINCT r) as degree 
+set n.deg=degree return n.Name, n.deg
+
+5. Adjacency Matrix
+match (n:MyNode),(m:MyNode)
+return n.Name, m.Name,
+case
+when (n)-->(m) then 1
+else 0
+end as value
+
+6. Laplacian Matrix
+match (n:MyNode),(m:MyNode)
+return n.Name,m.Name,
+case
+when n.Name=m.Name then 1
+when (n)-->(m) then -1/(sqrt(toInteger(n.deg))*sqrt(toInteger(m.deg)))
+else 0
+end as value
