@@ -1,0 +1,46 @@
+All Shortest Paths Query is updated 
+
+1. allshortest
+match p = allShortestPaths((source)-[r:TO*]-(dest)) 
+where source.Name='A' and dest.Name='P' 
+return [n IN NODES(p)|n.Name] AS Paths
+
+2. allshortest with condition
+match p = allShortestPaths((source)-[r:TO*]-(dest)) 
+where source.Name='A' and dest.Name='P' and length(p)>5 
+return [n IN NODES(p)|n.Name] AS Paths, length(p)
+
+3. diameter of the graph (longest shortest path in the graph)
+match (n:MyNode),(m:MyNode) 
+where n<>m 
+with n,m 
+match p=shortestPath((n)-[:TO*]->(m)) 
+return n.Name,m.Name,length(p) 
+order by length(p) desc limit 1
+
+4. Calculating Distance between two nodes. Using Edge property 'dist'
+match p = (a)-[:TO*]->(b) where a.Name='H' and b.Name='P' 
+return [n in nodes(p)|n.Name] as Nodes, length(p) as pathLength,
+reduce(s=0,e in relationships(p)| s+toInteger(e.dist)) as pathDist
+
+5. Dijkstra's algorithm for path
+MATCH (from: MyNode {Name:'A'}), (to: MyNode {Name:'P'}),
+path = shortestPath((from)-[:TO*]->(to))
+WITH REDUCE(dist = 0, rel in relationships(path) | dist + toInteger(rel.dist)) 
+AS distance, path
+RETURN path, distance
+
+6. Single source shortest path - Dijkstra SSSP
+MATCH (from: MyNode {Name:'A'}), (to:MyNode),
+path = shortestPath((from)-[:TO*]->(to)) where from <> to
+WITH REDUCE(dist = 0, rel in relationships(path) | dist + toInteger(rel.dist)) AS distance,path,from,to
+RETURN from,to,path, distance order by distance desc limit 5
+
+7. Exclude node in shortest path
+match p=shortestPath((a:MyNode {Name:'A'})-[:TO*]-(b:MyNode {Name:'P'})) 
+where not ('D' in [n in nodes(p)|n.Name]) return p
+
+8. Exclude 2-neighborhood of a node. 
+match (d {Name:'F'})-[:TO*..2]-(b) 
+with collect(DISTINCT b.Name) as MyList match (n)-[r:TO]-(m) 
+where not n.Name in MyList and not m.Name in MyList return n,r,m
